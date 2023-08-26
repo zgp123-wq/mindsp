@@ -35,20 +35,22 @@ class PAAHead(nn.Cell):
             else:
                 conv_func = nn.Conv2d
 
-            cls_tower.append(conv_func(256, 256, kernel_size=3, stride=1, pad_mode='same', padding=0, has_bias=True))
-            cls_tower.append(nn.GroupNorm(32, 256))
+             # For cls_tower
+            cls_tower.append(conv_func(256, 256, kernel_size=3, stride=1, pad_mode="pad", padding=1, has_bias=True))
+            cls_tower.append(nn.GroupNorm(num_groups=32, num_channels=256, affine=True))
             cls_tower.append(nn.ReLU())
 
-            bbox_tower.append(conv_func(256, 256, kernel_size=3, stride=1, pad_mode='same', padding=0, has_bias=True))
-            bbox_tower.append(nn.GroupNorm(32, 256))
+            # For bbox_tower
+            bbox_tower.append(conv_func(256, 256, kernel_size=3, stride=1, pad_mode="pad", padding=1, has_bias=True))
+            bbox_tower.append(nn.GroupNorm(num_groups=32, num_channels=256, affine=True))
             bbox_tower.append(nn.ReLU())
 
         self.cls_tower = nn.SequentialCell(cls_tower)
         self.bbox_tower = nn.SequentialCell(bbox_tower)
 
-        self.cls_logits = nn.Conv2d(256, num_anchors * num_classes, kernel_size=3, stride=1, pad_mode='same', padding=0)
-        self.bbox_pred = nn.Conv2d(256, num_anchors * 4, kernel_size=3, stride=1, pad_mode='same', padding=0)
-        self.iou_pred = nn.Conv2d(256, num_anchors * 1, kernel_size=3, stride=1, pad_mode='same', padding=0)
+        self.cls_logits = nn.Conv2d(256, num_anchors * num_classes, kernel_size=3, stride=1, pad_mode='pad', padding=1)
+        self.bbox_pred = nn.Conv2d(256, num_anchors * 4, kernel_size=3, stride=1, pad_mode='pad', padding=1)
+        self.iou_pred = nn.Conv2d(256, num_anchors * 1, kernel_size=3, stride=1, pad_mode='pad', padding=1)
 
         self.scales = nn.CellList([Scale(init_value=1.0) for _ in range(5)])
 
