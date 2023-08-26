@@ -21,8 +21,11 @@ class BufferList(Cell):
 
     def __iter__(self):
         return iter(self._buffers)
+    
+    def to_list(self):
+        return list(self._buffers)
 
-class AnchorGenerator:
+class AnchorGenerator(Cell):
     def __init__(self, cfg):
         super(AnchorGenerator, self).__init__()
         self.anchor_sizes = cfg.anchor_sizes
@@ -30,10 +33,7 @@ class AnchorGenerator:
         self.anchor_strides = cfg.anchor_strides
         assert len(self.anchor_strides) == len(self.anchor_sizes), "len(anchor_strides) != len(sizes)"
 
-        cell_anchors = [generate_cell(stride, size, self.aspect_ratios).asnumpy()
-                        for stride, size in zip(self.anchor_strides, self.anchor_sizes)]
-        
-        self.cell_anchors = BufferList(cell_anchors)
+        self.cell_anchors = [generate_cell(stride, size, self.aspect_ratios) for stride, size in zip(self.anchor_strides, self.anchor_sizes)]
 
     def construct(self, feature_maps):
         grid_sizes = [P.Shape()(feature_map)[-2:] for feature_map in feature_maps]
@@ -43,15 +43,18 @@ class AnchorGenerator:
             grid_height, grid_width = size
             shifts_x = Tensor(np.arange(0, grid_width * stride, step=stride, dtype=np.float32))
             shifts_y = Tensor(np.arange(0, grid_height * stride, step=stride, dtype=np.float32))
-            shift_y, shift_x = P.Meshgrid()(shifts_y, shifts_x)
+            xy = P.Meshgrid()((shifts_y, shifts_x))
+            shift_y = xy[0]
+            shift_x = xy[1]
             shift_x = P.Reshape()(shift_x, (-1,))
             shift_y = P.Reshape()(shift_y, (-1,))
-            shifts = P.Stack()([shift_x, shift_y, shift_x, shift_y], axis=1)
-
+            shifts = P.Stack(1)([shift_x, shift_y, shift_x, shift_y])
             anchor = P.Reshape()((P.Reshape()(shifts, (-1, 1, 4)) + P.Reshape()(base_anchors, (1, -1, 4))), (-1, 4))
+            print(anchor)
             one_list = BoxList(anchor, img_size=None, mode='x1y1x2y2')
 
             anchor_list.append(one_list)
+
 
         return anchor_list
 
