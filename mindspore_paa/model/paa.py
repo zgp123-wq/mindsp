@@ -8,6 +8,7 @@ from mindspore import Parameter
 import numpy as np
 from collections import OrderedDict
 from model import fpn as fpn_module
+from .fpn2 import resnet50_fpn
 from model import resnet
 from model.loss import PAALoss
 from utils.anchor_generator import AnchorGenerator
@@ -96,15 +97,16 @@ class PAAHead(nn.Cell):
 class PAA(nn.Cell):
     def __init__(self, cfg):
         super(PAA, self).__init__()
-        body = resnet.ResNet(cfg)
-        fpn = fpn_module.FPN(in_channels_list=[0, 512, 1024, 2048], out_channels=256)
-        self.backbone = nn.SequentialCell(OrderedDict([("body", body), ("fpn", fpn)]))
+        # body = resnet.ResNet(cfg)
+        # fpn = fpn_module.FPN(in_channels_list=[0, 512, 1024, 2048], out_channels=256)
+        # self.backbone = nn.SequentialCell(OrderedDict([("body", body), ("fpn", fpn)]))
+        self.feature_extractor = resnet50_fpn()
         self.head = PAAHead(cfg)
         self.paa_loss = PAALoss(cfg)  # Make sure this is correctly implemented in MindSpore
         self.anchor_generator = AnchorGenerator(cfg)  # Make sure this is correctly implemented in MindSpore
 
     def construct(self, img_tensor_batch, box_list_batch=None):
-        features = self.backbone(img_tensor_batch)
+        features = self.feature_extractor(img_tensor_batch)
         c_pred, box_pred, iou_pred = self.head(features)
         anchors = self.anchor_generator(features)
         self.paa_loss.anchors = anchors
