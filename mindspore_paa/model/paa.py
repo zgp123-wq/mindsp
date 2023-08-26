@@ -12,7 +12,7 @@ from .fpn2 import resnet50_fpn
 from model import resnet
 from model.loss import PAALoss
 from utils.anchor_generator import AnchorGenerator
-from model.layers import DFConv2d  # Make sure this is correctly implemented in MindSpore
+from model.layers import DFConv2d 
 
 class Scale(nn.Cell):
     def __init__(self, init_value=1.0):
