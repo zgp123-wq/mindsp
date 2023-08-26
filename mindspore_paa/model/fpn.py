@@ -42,23 +42,34 @@ class FPN(nn.Cell):
             if not inner_block:
                 continue
             inner_lateral = getattr(self, inner_block)(feature)
-            inner_top_down = P.ResizeNearest((int(inner_lateral.shape[-2]), int(inner_lateral.shape[-1])))(last_inner)
+            inner_top_down = P.ResizeNearestNeighbor((int(inner_lateral.shape[-2]), int(inner_lateral.shape[-1])))(last_inner)
             last_inner = inner_lateral + inner_top_down
             results.insert(0, getattr(self, layer_block)(last_inner))
 
         assert isinstance(self.top_blocks, LastLevelP6P7), 'fpn error'
         last_results = self.top_blocks(x[-1], results[-1])
+        print(len(results))
+        print(len(last_results))
         results.extend(last_results)
 
         return tuple(results)
 
-from mindspore import nn
 
 class LastLevelP6P7(nn.Cell):
     def __init__(self, in_channels, out_channels):
         super(LastLevelP6P7, self).__init__()
-        self.p6 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, pad_mode='same')
-        self.p7 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=2, pad_mode='same')
+        self.p6 = nn.Conv2d(in_channels=in_channels,
+                       out_channels=out_channels,
+                       kernel_size=3,
+                       stride=2,
+                       pad_mode="pad",
+                       padding=1)
+        self.p7 = nn.Conv2d(in_channels=in_channels,
+                       out_channels=out_channels,
+                       kernel_size=3,
+                       stride=2,
+                       pad_mode="pad",
+                       padding=1)
       
         weight_init = initializer(Normal(), self.p6.weight.data.shape)
         self.p6.weight.set_data(weight_init)
